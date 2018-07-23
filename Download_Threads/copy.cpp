@@ -51,14 +51,14 @@ void Func(info info1)
         len = buff.size();
         total += len;
 
-       g_lock.lock();
+       /*g_lock.lock();
        cout << size << ' ' << info1.id << ' ' << len << endl;
        cout <<"location = " <<  location << endl;
         cout << "buff = " << buff << endl << endl;
         g_lock.unlock();
-
+        */
         g_lock.lock();
-        fout << buff;
+        fout << buff; 
         fout << '\n';
         g_lock.unlock();
 
