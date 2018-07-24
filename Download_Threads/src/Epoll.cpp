@@ -45,7 +45,6 @@ void Epoll::epoll_Ctl(int fd, int op)   //修改事件合集(添加/删除)
 void Epoll::Stop() //停止程序
 {
     stopEpoll = false;
-    taskQueue.stopAll();
     threadPool.stopPool();
 }
 
@@ -117,7 +116,7 @@ void Epoll::assignedTask(int fd) //读取客户端的下载请求并分配任务
     }
 
     ifstream fin(buffer.from);
-    if (!fin.is_open())     //无次文件
+    if (!fin.is_open())     //无此文件
     {
         reply(fd);
     }
@@ -135,7 +134,7 @@ void Epoll::assignedTask(int fd) //读取客户端的下载请求并分配任务
         job.Location = size * job.Id / buffer.num;
         job.Bytes = size / buffer.num;
         job.num = buffer.num;
-        taskQueue.Add(job);
+        threadPool.addTask(job);        //添加任务到任务队列
         memset(&job, 0, sizeof(job));
     }
 }

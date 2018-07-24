@@ -13,7 +13,6 @@ private:
     epoll_event events[FDNUMBER];  //fd合集
     int listenfd;             //监听socketfd
     bool stopEpoll;         //停止标志
-    TaskQueue taskQueue;    //任务队列
     Pool threadPool;        //线程池
 public:
     Epoll(int fd);

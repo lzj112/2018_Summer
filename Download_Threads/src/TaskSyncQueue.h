@@ -14,11 +14,10 @@ private:
     bool stopQueue;                              //是否停止
     bool Empty;                             //任务队列是否为空
 public:
-    TaskQueue() : stopQueue(false), Empty(true) {}
+    TaskQueue();
     int get_Size();                 //计算任务队列内的任务数
     void Add(Task task);            //添加任务
     void Take(Task& task);          //取出任务
     void stopAll();                    //停止 唤醒所有等待线程
 
 };
-

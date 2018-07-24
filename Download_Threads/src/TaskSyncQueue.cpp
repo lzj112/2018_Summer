@@ -1,5 +1,11 @@
 #include "TaskSyncQueue.h" 
 
+
+TaskQueue::TaskQueue() : stopQueue(false), Empty(true) 
+{
+
+}
+
 int TaskQueue::get_Size() 
 {
     return Queue.empty() ? 0 : Queue.size();
