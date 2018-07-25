@@ -5,8 +5,10 @@
 class Pool 
 {
 private:
-    std::vector<std::thread> freePool;    //空闲线程池
-    std::vector<std::thread> busyPool;    //忙碌线程池
+    std::vector<std::thread> threads;    //线程池
+    //尝试:智能指针存放线程指针来管理
+
+    int poolInFree;       //空闲的线程量
     std::mutex my_Lock;
     TaskQueue syncQueue;                  //任务同步队列
     bool running;            

@@ -61,7 +61,7 @@ void Epoll::disconnect(int fd, int err) //判断连接断开是否正常
     }
     else 
     {
-        cout << fd << "与服务器断开连接" << endl;
+        cout << fd << "与客户端断开连接" << endl;
         epoll_Ctl(fd, EPOLL_CTL_DEL);
     }
 }
@@ -107,7 +107,7 @@ void Epoll::assignedTask(int fd) //读取客户端的下载请求并分配任务
     int ret = 0;
     while (ret = recv(fd, (void*)&buffer, sizeof(buffer), 0)) //读取客户端发来的请求
     {
-        //这里...
+        //这该做什么操作呢...
     }
         
     if (ret < 0) 
