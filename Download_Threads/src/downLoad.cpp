@@ -60,8 +60,8 @@ void downLoad::run()
         std::cin >> buff.num;
 */
 //mock
-        strcpy(buff.from, "c");
-        strcpy(buff.to, "/home/lzj/c1");
+        strcpy(buff.from, "1.cpp");
+        strcpy(buff.to, "/home/lzj/c1.cpp");
         buff.num = 5;
         send(sockFd, (void*)&buff, sizeof(buff), 0);
         std::cin >> buff.from;

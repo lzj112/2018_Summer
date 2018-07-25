@@ -1,7 +1,7 @@
 //声明任务变量
 #ifndef TASK_H
 #define TASK_H
-class Task 
+class Task  //任务
 {
 public:
     char pathName[20];         //请求下载的文件路径
@@ -15,7 +15,7 @@ public:
     char buff[256];         //缓冲区
 };
 
-class Buff 
+class Buff //服务器与客户端的通信结构
 {
 public:
     char from[20];
