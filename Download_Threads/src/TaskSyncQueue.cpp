@@ -35,7 +35,7 @@ void TaskQueue::Take(Task& task)
     {
         return ;
     }
-    task = Queue.front();   //取走一个任务
+    task = Queue.back();   //取走一个任务
     Queue.pop_back();       //删除那个任务
     if (get_Size() == 0)    //如果队列为空
     {

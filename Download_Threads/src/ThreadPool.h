@@ -1,3 +1,6 @@
+#ifndef THREADPOLL_h
+#define THREADPOLL_h
+
 #include "TaskSyncQueue.h"
 #include <thread>
 #include <vector>
@@ -20,3 +23,5 @@ public:
     void addTask(Task task);
     void readFile(Task job);
 };
+
+#endif

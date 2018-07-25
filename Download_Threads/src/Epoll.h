@@ -1,3 +1,6 @@
+#ifndef EPOLL_H
+#define EPOLL_H
+
 #include <sys/epoll.h>
 // #include <vector>
 #include "Task.h"
@@ -22,10 +25,12 @@ public:
     void epoll_Run();
     void Stop();
     void epollET(int epollFd, epoll_event* EVENTS, int ret);
-    void disconnect(int fd, int err);
+    int disconnect(int fd, int err);
     void setNonblockFd(int fd);   
     void assignedTask(int listenfd);   
     void reply(int fd);
     int newConnect(int listenfd);
     
 };
+
+#endif

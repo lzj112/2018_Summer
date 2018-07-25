@@ -11,7 +11,7 @@ Pool::Pool() : DEFAULT(10), running(true), poolInFree(DEFAULT)
 {
     for (int i = 0; i < DEFAULT; i++) 
     {
-        threads.push_back(std::thread(performTask));
+        threads.push_back(std::thread(&Pool::performTask, this));
     }
 }
 
@@ -44,7 +44,7 @@ void Pool::readFile(Task job) //读取文件,发送到客户端
     int fd = open(job.pathName, O_RDONLY);  //以只读方式打开文件
     if (fd == -1) 
     {
-        cout << "打开文件" << job.pathName << "失败" << endl;
+        cout << "打开文件" << job.pathName << "失败" << endl; 
         return ;
     }
 
@@ -69,7 +69,7 @@ void Pool::readFile(Task job) //读取文件,发送到客户端
     }
     else //不是最后一部分的线程就按Bytes读取
     {
-        while (sum >job.Bytes) 
+        while (sum < job.Bytes) 
         {
             ret = pread(fd, buff, 255, location);   //从Location开始读
             sum += ret;
@@ -91,7 +91,7 @@ void Pool::performTask() //线程函数,循环等待获取任务
     while (1) 
     {
         syncQueue.Take(job);    //没有取到任务即阻塞在此
-        
+
         if (!running)       //如果线程池停止运转了,结束线程
         {
             break;

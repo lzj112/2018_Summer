@@ -1,11 +1,11 @@
 //声明任务变量
-// #ifndef TASK_H
-// #define TASK_H
+#ifndef TASK_H
+#define TASK_H
 class Task 
 {
 public:
-    char* pathName;         //请求下载的文件路径
-    char* To;               //请求保存的路径
+    char pathName[20];         //请求下载的文件路径
+    char To[20];               //请求保存的路径
     int Id;                 //标识本任务下载文件的第几部分
     int clientFd;           //客户端socketfd
     int Size;               //文件大小
@@ -18,8 +18,8 @@ public:
 class Buff 
 {
 public:
-    char* from;
-    char* to;
+    char from[20];
+    char to[20];
     int num;    //指定用多少线程
 };
-// #endif
+#endif

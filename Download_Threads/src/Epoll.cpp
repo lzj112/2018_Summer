@@ -53,16 +53,17 @@ Epoll::~Epoll()
     close(listenfd);
 }
 
-void Epoll::disconnect(int fd, int err) //判断连接断开是否正常
+int Epoll::disconnect(int fd, int err) //判断连接断开是否正常
 {
     if (err == EINTR || err == EWOULDBLOCK || err == EAGAIN) 
     {
-        return ;
+        return 0;
     }
     else 
     {
         cout << fd << "与客户端断开连接" << endl;
         epoll_Ctl(fd, EPOLL_CTL_DEL);
+        return 1;
     }
 }
 
@@ -80,6 +81,7 @@ void Epoll::epoll_Run()
         }
         else 
         {
+            cout << "有新的请求" << endl;
             epollET(epollFd, events, ret);  //有事件
         }
     }
@@ -105,35 +107,49 @@ void Epoll::assignedTask(int fd) //读取客户端的下载请求并分配任务
     Task job;
     Buff buffer;
     int ret = 0;
-    while (ret = recv(fd, (void*)&buffer, sizeof(buffer), 0)) //读取客户端发来的请求
+    // while (ret = recv(fd, (void*)&buffer, sizeof(buffer), 0)) //读取客户端发来的请求
+    while (1)
     {
+        ret = recv(fd, (void*)&buffer, sizeof(buffer), 0);
+        if (ret <= 0) 
+        {
+            break;
+        }
         //这该做什么操作呢...
+        cout << "接受请求ing...." << endl;
     }
         
     if (ret < 0) 
     {
-        disconnect(fd, errno);  //判断是否是因为断开连接
+        int flag = disconnect(fd, errno);  //判断是否是因为断开连接
+        if (flag) 
+        {
+            // return ;
+        }
     }
 
     ifstream fin(buffer.from);
     if (!fin.is_open())     //无此文件
     {
-        reply(fd);
+        // reply(fd);
+        cout << "无此文件" << endl;
     }
     struct stat s;
-    int size = stat(buffer.from, &s);   //获取文件的大小
+    stat(buffer.from, &s);   //获取文件的大小
+    int size = s.st_size;
 
     int tmp = buffer.num;   //分成num个任务块
     for (int i = 0; i < tmp; i++) 
     {
         job.Id = i;
-        job.pathName = buffer.from;
-        job.To = buffer.to;
+        strcpy(job.pathName, buffer.from);
+        strcpy(job.To, buffer.to);
         job.clientFd = fd;
         job.Size = size;
         job.Location = size * job.Id / buffer.num;
         job.Bytes = size / buffer.num;
         job.num = buffer.num;
+
         threadPool.addTask(job);        //添加任务到任务队列
         memset(&job, 0, sizeof(job));
     }
@@ -146,6 +162,7 @@ void Epoll::epollET(int epollFd, epoll_event* events, int ret)
         if (events[i].data.fd == listenfd) 
         {
             int connfd = newConnect(listenfd);
+            cout << "有新连接" << connfd << endl;
             epoll_Ctl(connfd, EPOLL_CTL_ADD);   //将新的连接socketfd添加到合集
         }
         else if (events[i].events & EPOLLIN) 

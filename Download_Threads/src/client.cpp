@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <unistd.h>
 #include <cstring>
+#include "downLoad.h"
 using namespace std;
 
 const int PORT = 4096;
@@ -22,5 +23,8 @@ int main()
 
     int ret = connect(sockfd, (sockaddr*)&cliaddress, sizeof(cliaddress));
     assert(ret != -1);
+
+    downLoad cli(sockfd);
+    cli.run();
 
 }
