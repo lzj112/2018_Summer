@@ -19,8 +19,17 @@ void downLoad::jointFile(Task job)
     int fd = open(job.To, O_WRONLY | O_CREAT, S_IWUSR | S_IRUSR);
     assert(fd != -1);
     
-    cout << "收到文件 from :" << job.Id << ' ' <<  job.writen << '\n' << job.buff << endl;
-    pwrite(fd, job.buff, strlen(job.buff), job.writen);
+    // job.buff[256] = '\0';
+    // cout << "收到文件 from :" << job.Id << ' ' <<  job.writen << '\n' << job.buff << endl;
+    // if (job.num != (job.Id + 1))
+    pwrite(fd, job.buff, /*strlen(job.buff)*/job.ret/*255*/, job.writen);
+    /*else 
+    {
+        cout << strlen(job.buff) << endl;
+        cout << job.buff << endl;
+         job.buff[strlen(job.buff)] = '\0';*/
+        // pwrite(fd, job.buff, strlen(job.buff)  /*255*/, job.writen);
+    // }  
 }
 
 void downLoad::recvFile() 

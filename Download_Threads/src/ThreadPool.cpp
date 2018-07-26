@@ -51,39 +51,41 @@ void Pool::readFile(Task job) //读取文件,发送到客户端
     // off_t offset = lseek(fd, job.Location, SEEK_SET); //移动文件指针到本线程下载的开始
     // assert(offset != -1);
     int ret, id, sum, location;
-    char buff[256];
+    // char buff[256];
     sum = 0;
     ret = 0;
     location = job.Location;
     if (job.num == (job.Id + 1)) //防止最后一部分按Bytes读,有剩余
     {
-        while (ret = pread(fd, buff, 255, location))  //读到文件尾 
+        while (ret = pread(fd, job.buff, 255/*sizeof(job.buff)*/, location))  //读到文件尾 
         {
-            strcpy(job.buff, buff);
+            // strcpy(job.buff, buff);
+            job.ret = ret;
             int byte = send(job.clientFd, (void*)&job, sizeof(job), 0);
             assert(byte != 0);
             
             location += ret;
             job.writen += ret;
             memset(job.buff, 0, sizeof(job.buff));
-            memset(buff, 0, sizeof(buff));
+            // memset(buff, 0, sizeof(buff));
         }
     }
     else //不是最后一部分的线程就按Bytes读取
     {
         while (sum < job.Bytes) 
         {
-            ret = pread(fd, buff, 255, location);   //从Location开始读
+            ret = pread(fd, job.buff, 255/*sizeof(job.buff)*/, location);   //从Location开始读
 
             sum += ret;
             location += ret;    //pread不会改变文件指针
-            strcpy(job.buff, buff);
+            job.ret = ret;
+            // strcpy(job.buff, buff);
             int byte = send(job.clientFd, (void*)&job, sizeof(job), 0);
             assert(byte != 0);
 
             job.writen += ret;
             memset(job.buff, 0, sizeof(job.buff));
-            memset(buff, 0, sizeof(buff));
+            // memset(buff, 0, sizeof(buff));
         }
     }
 }
