@@ -3,6 +3,7 @@
 #include <sys/socket.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <fstream>
 #include <iostream>
 #include <cstring>
 using namespace std;
@@ -17,10 +18,9 @@ void downLoad::jointFile(Task job)
 
     int fd = open(job.To, O_WRONLY | O_CREAT, S_IWUSR | S_IRUSR);
     assert(fd != -1);
-
-    int bytes = 0;
-    int location = job.Location;
-    pwrite(fd, job.buff, job.Bytes, location);
+    
+    cout << "收到文件 from :" << job.Id << ' ' <<  job.writen << '\n' << job.buff << endl;
+    pwrite(fd, job.buff, strlen(job.buff), job.writen);
 }
 
 void downLoad::recvFile() 
@@ -51,19 +51,18 @@ void downLoad::run()
     while (1) 
     {
         memset(&buff, 0, sizeof(buff));
-/*
+
         std::cout << "输入想要下载的文件名:" << std::endl;
         std::cin >> buff.from;
         std::cout << "输入想要保存的地址:" << std:: endl;
         std::cin >> buff.to;
         std::cout << "想要用多少个线程下载 : " << std:: endl;
         std::cin >> buff.num;
-*/
+
 //mock
-        strcpy(buff.from, "1.cpp");
-        strcpy(buff.to, "/home/lzj/c1.cpp");
-        buff.num = 5;
+        // strcpy(buff.from, "memory.c");
+        // strcpy(buff.to, "/home/lzj/1.c");
+        // buff.num = 5;
         send(sockFd, (void*)&buff, sizeof(buff), 0);
-        std::cin >> buff.from;
     }
 }

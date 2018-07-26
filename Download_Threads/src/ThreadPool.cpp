@@ -59,10 +59,12 @@ void Pool::readFile(Task job) //读取文件,发送到客户端
     {
         while (ret = pread(fd, buff, 255, location))  //读到文件尾 
         {
-            location += ret;
             strcpy(job.buff, buff);
             int byte = send(job.clientFd, (void*)&job, sizeof(job), 0);
             assert(byte != 0);
+            
+            location += ret;
+            job.writen += ret;
             memset(job.buff, 0, sizeof(job.buff));
             memset(buff, 0, sizeof(buff));
         }
@@ -72,11 +74,14 @@ void Pool::readFile(Task job) //读取文件,发送到客户端
         while (sum < job.Bytes) 
         {
             ret = pread(fd, buff, 255, location);   //从Location开始读
+
             sum += ret;
             location += ret;    //pread不会改变文件指针
             strcpy(job.buff, buff);
             int byte = send(job.clientFd, (void*)&job, sizeof(job), 0);
             assert(byte != 0);
+
+            job.writen += ret;
             memset(job.buff, 0, sizeof(job.buff));
             memset(buff, 0, sizeof(buff));
         }

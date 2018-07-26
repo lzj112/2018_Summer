@@ -147,6 +147,7 @@ void Epoll::assignedTask(int fd) //读取客户端的下载请求并分配任务
         job.clientFd = fd;
         job.Size = size;
         job.Location = size * job.Id / buffer.num;
+        job.writen = job.Location;
         job.Bytes = size / buffer.num;
         job.num = buffer.num;
 
