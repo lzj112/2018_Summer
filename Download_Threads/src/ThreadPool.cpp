@@ -15,9 +15,21 @@ Pool::Pool() : DEFAULT(10), running(true), poolInFree(DEFAULT)
     }
 }
 
+void Pool::incThreads() 
+{
+    for (int i = 0; i < 5; i++) //添加五个线程
+    {
+        threads.push_back(std::thread(&Pool::performTask, this));   
+    }
+}
+
 void Pool::addTask(Task task) 
 {
     syncQueue.Add(task);
+    if (poolInFree == 0 && syncQueue.get_Size() > 6) //如果空闲线程为0且尚有6个任务等待
+    {
+        incThreads();   //添加线程
+    }
 }
 
 void Pool::stopPool() 
@@ -93,12 +105,21 @@ void Pool::performTask() //线程函数,循环等待获取任务
     {
         syncQueue.Take(job);    //没有取到任务即阻塞在此
 
+        my_Lock.lock();     //空闲线程-1
+        poolInFree--;
+        my_Lock.unlock();
+
         if (!running)       //如果线程池停止运转了,结束线程
         {
             break;
         }
         
         readFile(job);  //读取文件并发往客户端
+        
         memset(&job, 0, sizeof(job));   //完成一次任务,清空
+        my_Lock.lock();
+        poolInFree++;       //空闲线程+1
+        my_Lock.unlock();
+
     }
 }

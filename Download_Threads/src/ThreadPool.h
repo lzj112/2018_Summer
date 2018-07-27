@@ -22,7 +22,7 @@ public:
     void stopPool();
     void addTask(Task task);
     void readFile(Task job);
-    // void incThreads();
+    void incThreads();
 };
 
 #endif

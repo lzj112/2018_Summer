@@ -20,6 +20,7 @@ public:
     int writen;                 //客户端开始写的位置
     int ret;                    //服务器读取了多少字节
     int Bytes;                  //本部分需要读取(下载)多少字节
+    int breakPoint;             //文件下载断点 用来实现断点续传
 };
 
 class Task  //任务

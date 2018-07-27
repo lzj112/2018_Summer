@@ -27,7 +27,11 @@ void downLoad::jointFile(Task job)
     {
         fd = open("/home/lzj/test/tmp", O_WRONLY | O_CREAT, S_IWUSR | S_IRUSR);
     }
-    // cout << "----------- " << job.base.to << "--------" << endl;
+    
+    once_flag flag;
+    call_once(flag, [job](){
+        cout << "-----线程" << job.inFo.Id << "已下载到 " << job.base.to << "--------" << endl;
+    });
     pwrite(fd, job.buff, job.inFo.ret, job.inFo.writen);
 }
 
