@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <sys/stat.h>
+#include <signal.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <fstream>
@@ -70,6 +71,7 @@ int Epoll::disconnect(int fd, int err) //判断连接断开是否正常
 void Epoll::epoll_Run() 
 {
     int ret;
+    signal(SIGINT, SIG_IGN);
     while (stopEpoll) 
     {
         ret = epoll_wait(epollFd, events, FDNUMBER, 0); //执行一次非阻塞检查
@@ -141,15 +143,15 @@ void Epoll::assignedTask(int fd) //读取客户端的下载请求并分配任务
     int tmp = buffer.num;   //分成num个任务块
     for (int i = 0; i < tmp; i++) 
     {
-        job.Id = i;
-        strcpy(job.pathName, buffer.from);
-        strcpy(job.To, buffer.to);
-        job.clientFd = fd;
-        job.Size = size;
-        job.Location = size * job.Id / buffer.num;
-        job.writen = job.Location;
-        job.Bytes = size / buffer.num;
-        job.num = buffer.num;
+        job.inFo.Id = i;
+        strcpy(job.base.from, buffer.from);
+        strcpy(job.base.to, buffer.to);
+        job.inFo.clientFd = fd;
+        job.inFo.Size = size;
+        job.inFo.Location = size * job.inFo.Id / buffer.num;
+        job.inFo.writen = job.inFo.Location;
+        job.inFo.Bytes = size / buffer.num;
+        job.base.num = buffer.num;
 
         threadPool.addTask(job);        //添加任务到任务队列
         memset(&job, 0, sizeof(job));

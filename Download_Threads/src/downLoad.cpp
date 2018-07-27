@@ -1,5 +1,6 @@
 #include "downLoad.h"
 #include <assert.h>
+#include <signal.h>
 #include <sys/socket.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -13,23 +14,21 @@ downLoad::downLoad(int fd) : sockFd(fd), running(true)
 
 }
 
+void downLoad::stop() 
+{
+    running = false;
+}
 void downLoad::jointFile(Task job) 
 {
 
-    int fd = open(job.To, O_WRONLY | O_CREAT, S_IWUSR | S_IRUSR);
-    assert(fd != -1);
-    
-    // job.buff[256] = '\0';
-    // cout << "收到文件 from :" << job.Id << ' ' <<  job.writen << '\n' << job.buff << endl;
-    // if (job.num != (job.Id + 1))
-    pwrite(fd, job.buff, /*strlen(job.buff)*/job.ret/*255*/, job.writen);
-    /*else 
+    int fd = open(job.base.to, O_WRONLY | O_CREAT, S_IWUSR | S_IRUSR);
+    // assert(fd != -1);
+    if (fd == -1) 
     {
-        cout << strlen(job.buff) << endl;
-        cout << job.buff << endl;
-         job.buff[strlen(job.buff)] = '\0';*/
-        // pwrite(fd, job.buff, strlen(job.buff)  /*255*/, job.writen);
-    // }  
+        fd = open("/home/lzj/test/tmp", O_WRONLY | O_CREAT, S_IWUSR | S_IRUSR);
+    }
+    // cout << "----------- " << job.base.to << "--------" << endl;
+    pwrite(fd, job.buff, job.inFo.ret, job.inFo.writen);
 }
 
 void downLoad::recvFile() 
@@ -57,7 +56,8 @@ void downLoad::run()
     std::thread t(&downLoad::recvFile, this);
     t.detach();
     
-    while (1) 
+    signal(SIGINT, SIG_IGN);
+    while (running) 
     {
         memset(&buff, 0, sizeof(buff));
 
@@ -68,10 +68,12 @@ void downLoad::run()
         std::cout << "想要用多少个线程下载 : " << std:: endl;
         std::cin >> buff.num;
 
-//mock
-        // strcpy(buff.from, "memory.c");
-        // strcpy(buff.to, "/home/lzj/1.c");
-        // buff.num = 5;
+        if (!strcmp(buff.from, "0") && !strcmp(buff.to, "0") && buff.num == 0) 
+        {
+            stop();
+        }
+
         send(sockFd, (void*)&buff, sizeof(buff), 0);
     }
+    cout << "-------------------客户端退出---------------------" << endl;
 }

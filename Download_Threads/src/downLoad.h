@@ -16,5 +16,6 @@ public:
     void recvFile();
     void jointFile(Task job);
     void run();
+    void stop();
 };
 #endif
