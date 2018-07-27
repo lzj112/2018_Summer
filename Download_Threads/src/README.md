@@ -75,7 +75,7 @@ downLoad::recvFile()
 | 头  |功能   |
 | ------------ | ------------ |
 |  Epoll.h | 封装epoll  |
-|  Task.h | 两个重要的数据结构  |
+|  Task.h | 主要的数据结构  |
 |  TaskSyncQueue.h |任务同步队列   |
 |  ThreadPool.h | 线程池  |
 |downLoad.h|负责客户端的发送接收|
