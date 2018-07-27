@@ -54,13 +54,16 @@ Epoll::epoll_Run()  //循环 监听
         void Epoll::assignedTask() //读取客户端的下载请求并封装任务
         {
             Pool::addTask();        //添加任务到任务队列
+            {
+                TaskSyncQueue::Add();
+            }
         }
     }
 }
 
 Pool::performTask() //线程池线程函数,循环等待获取任务
 {
-    TaskQueue::Take(job);    //没有取到任务即阻塞在此 
+    TaskQueue::Take();    //没有取到任务即阻塞在此 
 
     Pool::readFile();       //读取文件(该线程需要读取的部分)并发往客户端
 }
