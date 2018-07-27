@@ -9,14 +9,21 @@
 
 ------------
 
-### 重要数据结构 
+### 主要数据结构 
 
 
-    class Task  //任务
+    
+    class Buff //服务器与客户端的基本通信结构
     {
     public:
-    char pathName[20];         //请求下载的文件路径
-    char To[20];               //请求保存的路径
+    char from[50];      //请求下载的文件
+    char to[50];        //请求保存的路径
+    int num;            //指定用多少线程 num+1 == id时读到文件完
+    };
+
+    class InFo  //下载过程所需信息
+    {
+    public:
     int Id;                     //标识本任务下载文件的第几部分
     int clientFd;               //客户端socketfd
     int Size;                   //文件大小
@@ -24,16 +31,16 @@
     int writen;                 //客户端开始写的位置
     int ret;                    //服务器读取了多少字节
     int Bytes;                  //本部分需要读取(下载)多少字节
-    int num;                    //客户端指定了多少个线程 num+1 == id时读到文件完
-    char buff[256];             //缓冲区
     };
-    class Buff          //服务器与客户端的通信结构
+
+    class Task  //任务
     {
     public:
-        char from[20];
-        char to[20];
-        int num;    //指定用多少线程
+    Buff base;
+    InFo inFo;
+    char buff[256];             //缓冲区
     };
+
 
 ### 主要逻辑
 
@@ -47,13 +54,16 @@ Epoll::epoll_Run()  //循环 监听
         void Epoll::assignedTask() //读取客户端的下载请求并封装任务
         {
             Pool::addTask();        //添加任务到任务队列
+            {
+                TaskSyncQueue::Add();
+            }
         }
     }
 }
 
 Pool::performTask() //线程池线程函数,循环等待获取任务
 {
-    TaskQueue::Take(job);    //没有取到任务即阻塞在此 
+    TaskQueue::Take();    //没有取到任务即阻塞在此 
 
     Pool::readFile();       //读取文件(该线程需要读取的部分)并发往客户端
 }
@@ -65,7 +75,7 @@ downLoad::recvFile()
 | 头  |功能   |
 | ------------ | ------------ |
 |  Epoll.h | 封装epoll  |
-|  Task.h | 两个重要的数据结构  |
+|  Task.h | 主要的数据结构  |
 |  TaskSyncQueue.h |任务同步队列   |
 |  ThreadPool.h | 线程池  |
 |downLoad.h|负责客户端的发送接收|
