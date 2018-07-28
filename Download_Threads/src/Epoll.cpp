@@ -107,12 +107,11 @@ void Epoll::reply(int fd)
 void Epoll::assignedTask(int fd) //读取客户端的下载请求并分配任务
 {
     Task job;
-    Buff buffer;
     int ret = 0;
     // while (ret = recv(fd, (void*)&buffer, sizeof(buffer), 0)) //读取客户端发来的请求
     while (1)
     {
-        ret = recv(fd, (void*)&buffer, sizeof(buffer), 0);
+        ret = recv(fd, (void*)&job, sizeof(job), 0);
         if (ret <= 0) 
         {
             break;
@@ -130,31 +129,26 @@ void Epoll::assignedTask(int fd) //读取客户端的下载请求并分配任务
         }
     }
 
-    ifstream fin(buffer.from);
+    ifstream fin(job.base.from);
     if (!fin.is_open())     //无此文件
     {
-        // reply(fd);
         cout << "无此文件" << endl;
     }
     struct stat s;
-    stat(buffer.from, &s);   //获取文件的大小
+    stat(job.base.from, &s);   //获取文件的大小
     int size = s.st_size;
 
-    int tmp = buffer.num;   //分成num个任务块
+    int tmp = job.base.num;   //分成num个任务块
     for (int i = 0; i < tmp; i++) 
     {
         job.inFo.Id = i;
-        strcpy(job.base.from, buffer.from);
-        strcpy(job.base.to, buffer.to);
         job.inFo.clientFd = fd;
         job.inFo.Size = size;
-        job.inFo.Location = size * job.inFo.Id / buffer.num;
+        job.inFo.Location = size * job.inFo.Id / job.base.num;
         job.inFo.writen = job.inFo.Location;
-        job.inFo.Bytes = size / buffer.num;
-        job.base.num = buffer.num;
+        job.inFo.Bytes = size / job.base.num;
 
         threadPool.addTask(job);        //添加任务到任务队列
-        memset(&job, 0, sizeof(job));
     }
 }
 

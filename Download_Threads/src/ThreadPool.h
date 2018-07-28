@@ -21,8 +21,10 @@ public:
     void performTask();
     void stopPool();
     void addTask(Task task);
-    void readFile(Task job);
+    void judge(Task job);   //判断是否是断线续传
     void incThreads();
+    void sendFromBreak(Task job);       //断点续传发送文件
+    void sendNoBreak(Task job);    //不是断点续传
 };
 
 #endif
