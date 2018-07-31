@@ -136,16 +136,10 @@ void Epoll::assignedTask(int fd) //读取客户端的下载请求并分配任务
     {
         job.inFo.Id = i;
         job.inFo.clientFd = fd;
-// cout << "fd==" << job.inFo.clientFd << endl;
         job.inFo.Size = size;
-// cout << "size==" << job.inFo.Size << endl;
         job.inFo.Location = size * job.inFo.Id / job.base.num;
-// cout << "lo==" << job.inFo.Location << endl;
         job.inFo.writen = job.inFo.Location;
-// cout << "writen=" << job.inFo.writen << endl;
         job.inFo.Bytes = size / job.base.num;
-// cout << "by=" << job.inFo.Bytes << endl;
-// cout << "*********************************************************" << endl;
         threadPool.addTask(job);        //添加任务到任务队列
     }
 }
@@ -154,7 +148,7 @@ void Epoll::epollET(int epollFd, epoll_event* events, int ret)
 {
     for (int i = 0; i < ret; i++) 
     {
-        if (events[i].events & EPOLLIN) //有EPOLLIN事件
+        if (events[i].events & EPOLLIN ) //有EPOLLIN事件
         {
             if (events[i].data.fd == listenfd)  //是新的连接请求
             {

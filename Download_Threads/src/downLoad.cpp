@@ -111,7 +111,6 @@ void downLoad::recvFile() //接收服务器发来的数据
 
 void downLoad::applyBreCon(Task& job, string flag) 
 {
-    // char* fileName = new char[50];
     char fileName[50];
     strcpy(fileName, job.base.from);
     char* str = "_tmp";
@@ -121,6 +120,7 @@ void downLoad::applyBreCon(Task& job, string flag)
     if (it == record.end()) //此前无记录
     {
         record.insert(make_pair(job.base.from, fileName));
+cout << endl;///////
         saveRecord();
         job.base.isBreak = -1;
         int fd = open(fileName, O_RDONLY | O_CREAT, S_IWUSR | S_IRUSR); //创建临时文件
@@ -141,12 +141,8 @@ void downLoad::applyBreCon(Task& job, string flag)
         auto it = record.begin();
         remove(it->second);    //删除文件
         record.erase(record.begin());   //删除第一个记录
-        // delete[] it->second;    //释放内存
-
         saveRecord();   //写入文件
     }
-
-    // delete[] fileName;
 }
 
 void downLoad::run() 
@@ -154,7 +150,6 @@ void downLoad::run()
     std::thread t(&downLoad::recvFile, this);
     t.detach();
     string flag;
-
     // signal(SIGINT, SIG_IGN);
 
     while (running) 
