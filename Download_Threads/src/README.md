@@ -1,5 +1,5 @@
 # 多线程下载
-- 客户端发送请求下载的文件名(绝对路径),指定下载的线程数
+- 客户端发送请求下载的文件名(绝对路径),指定下载的线程数(可下载文本,图片,视频等,支持断点续传)
 - 服务器使用epoll,将客户端发来的任务请求封装好添加到任务同步队列
 - 同步队列使用vector<Task>存储
 - 线程池每一个线程都在循环获取任务,任务队列无任务即阻塞
@@ -19,6 +19,7 @@
     char from[50];      //请求下载的文件
     char to[50];        //请求保存的路径
     int num;            //指定用多少线程 num+1 == id时读到文件完
+    int isBreak;        //判断是否需要断点续传
     };
 
     class InFo  //下载过程所需信息
@@ -38,7 +39,8 @@
     public:
     Buff base;
     InFo inFo;
-    char buff[256];             //缓冲区
+    char buff[1024];             //缓冲区
+    int breakPoint[20];         //记录下载的每个线程的断点,也就是说最多支持20个线程下载
     };
 
 
@@ -68,8 +70,25 @@ Pool::performTask() //线程池线程函数,循环等待获取任务
     Pool::readFile();       //读取文件(该线程需要读取的部分)并发往客户端
 }
 
-//客户端设计较为简单,主线程负责不停向服务器申请下载,而下面的接收线程每接收到一部分就写到同一个文件中的那一块
-downLoad::recvFile()   
+//客户端
+downLoad::run() //循环输入,send()
+{
+    downLoad::applyBreCon();    //send之前判断一下是否有断点记录,
+    send();                     //没有就创建,有就拿到断点
+}
+
+downLoad::recvFile() //接收服务器发来的数据
+{
+    recv();
+    mergeThreads.push_back(thread(&downLoad::jointFile, this, job));
+    //recv到数据就开线程合并到同一个文件
+}
+
+downLoad::jointFile() 
+{
+    addRecord();    //添加断点
+    //写入数据后,将新的断点写入文件
+} 
 ```
 
 | 头  |功能   |
@@ -82,4 +101,4 @@ downLoad::recvFile()
 
 
 ----------
-完善ing...
+断点续传有时候会丢失数据
