@@ -2,7 +2,6 @@
 #define EPOLL_H
 
 #include <sys/epoll.h>
-// #include <vector>
 #include "Task.h"
 #include "TaskSyncQueue.h"
 #include "ThreadPool.h"
@@ -12,7 +11,6 @@ class Epoll
 {
 private:
     int epollFd;            //epoll句柄
-    // std::vector<epoll_event*> events;
     epoll_event events[FDNUMBER];  //fd合集
     int listenfd;             //监听socketfd
     bool stopEpoll;         //停止标志
@@ -28,7 +26,6 @@ public:
     int disconnect(int fd, int err);
     void setNonblockFd(int fd);   
     void assignedTask(int listenfd);   
-    void reply(int fd);
     int newConnect(int listenfd);
     
 };

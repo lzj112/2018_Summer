@@ -5,6 +5,8 @@
 #include <thread>
 #include <vector>
 
+const int MAX_NUMBER = 10;
+
 class Pool 
 {
 private:
@@ -15,7 +17,7 @@ private:
     std::mutex my_Lock;
     TaskQueue syncQueue;                  //任务同步队列
     bool running;            
-    const int DEFAULT;
+    // const int DEFAULT;
 public:
     Pool();
     void performTask();

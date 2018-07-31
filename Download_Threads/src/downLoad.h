@@ -25,9 +25,8 @@ public:
     void run();
     void stop();
     void addRecord(Task job, int breakpoint);
-    // void delRecord();
-    void applyBreCon(Task& job); //查看有无断点 
-    // void print();        
+    void applyBreCon(Task& job, std::string flag); //查看有无断点 
+    void saveRecord();  
 };
 
 #endif

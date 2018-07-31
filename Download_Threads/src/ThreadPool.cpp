@@ -8,9 +8,9 @@
 #include <sys/sendfile.h>
 using namespace std;
 
-Pool::Pool() : DEFAULT(10), running(true), poolInFree(DEFAULT)
+Pool::Pool() : running(true), poolInFree(MAX_NUMBER)
 {
-    for (int i = 0; i < DEFAULT; i++) 
+    for (int i = 0; i < MAX_NUMBER; i++) 
     {
         threads.push_back(std::thread(&Pool::performTask, this));
     }
@@ -54,7 +54,6 @@ void Pool::stopPool()
 //使用pread函数,不移动文件指针,不造成竞争,不用上锁
 void Pool::sendNoBreak(Task job) //读取文件,发送到客户端
 {
-    // cout << "here is Nobreak" << endl;
     int fd = open(job.base.from, ios::binary | O_RDONLY);  //以只读方式打开文件
     if (fd == -1) 
     {
@@ -74,8 +73,11 @@ void Pool::sendNoBreak(Task job) //读取文件,发送到客户端
             job.base.isBreak += ret;
 
             int byte = send(job.inFo.clientFd, (void*)&job, sizeof(job), 0);
-            assert(byte != 0);
-            
+            if (byte <= 0) 
+            {
+                break;
+            }
+// sleep(1);
             location += ret;
             job.inFo.writen += ret;
             memset(job.buff, 0, sizeof(job.buff));
@@ -88,13 +90,17 @@ void Pool::sendNoBreak(Task job) //读取文件,发送到客户端
             ret = pread(fd, job.buff, sizeof(job.buff), location);   //从Location开始读
 
             sum += ret;
-            location += ret;    //pread不会改变文件指针
+            location += ret;    //pread不会改变文件指针 
             job.inFo.ret = ret;
             job.base.isBreak += ret;
             
 
             int byte = send(job.inFo.clientFd, (void*)&job, sizeof(job), 0);
-            assert(byte != 0);
+            if (byte <= 0) 
+            {
+                break;
+            }
+// sleep(1);
 
             job.inFo.writen += ret;
             memset(job.buff, 0, sizeof(job.buff));
@@ -106,7 +112,6 @@ void Pool::sendNoBreak(Task job) //读取文件,发送到客户端
 
 void Pool::sendFromBreak(Task job) 
 {
-    cout << "here is FromBreak" << endl;
     int fd = open(job.base.from, ios::binary | O_RDONLY);  //以只读方式打开文件
     if (fd == -1) 
     {
@@ -117,9 +122,18 @@ void Pool::sendFromBreak(Task job)
     int ret, id, sum, location;
     sum = 0;
     ret = 0;
-    location = job.breakPoint[job.inFo.Id];
+    int tmp = job.breakPoint[job.inFo.Id];
+    if (tmp) 
+    {
+        location = tmp;
+    }
+    else 
+    {
+        location = job.inFo.Location;
+    }
+
     job.base.isBreak = location;
-    job.inFo.Bytes = job.inFo.Location + job.inFo.Bytes - job.breakPoint[job.inFo.Id];
+    job.inFo.Bytes = job.inFo.Location + job.inFo.Bytes - location;
     if (job.base.num == (job.inFo.Id + 1)) //防止最后一部分按Bytes读,有剩余
     {
         while (ret = pread(fd, job.buff, 255, location))  //读到文件尾 
@@ -128,8 +142,11 @@ void Pool::sendFromBreak(Task job)
             job.base.isBreak += ret;
 
             int byte = send(job.inFo.clientFd, (void*)&job, sizeof(job), 0);
-            assert(byte != 0);
-            sleep(1);
+            if (byte <= 0) 
+            {
+                break;
+            }
+// sleep(1);
             
             location += ret;
             job.inFo.writen += ret;
@@ -148,8 +165,11 @@ void Pool::sendFromBreak(Task job)
             job.base.isBreak += ret;
 
             int byte = send(job.inFo.clientFd, (void*)&job, sizeof(job), 0);
-            assert(byte != 0);
-            sleep(1);
+            if (byte <= 0) 
+            {
+                break;
+            }
+// sleep(1);
 
             job.inFo.writen += ret;
             memset(job.buff, 0, sizeof(job.buff));
@@ -160,12 +180,14 @@ void Pool::sendFromBreak(Task job)
 
 void Pool::judge(Task job) //判断是否是断点续传
 {
-    if (job.base.isBreak == -1) 
+    if (job.base.isBreak != 1) 
     {
+cout << "发送文件 " << endl;
         sendNoBreak(job);
     }
     else if (job.base.isBreak == 1) 
     {
+cout << "开始断点续传" << endl;
         sendFromBreak(job);
     }
 } 
@@ -179,7 +201,6 @@ void Pool::performTask() //线程函数,循环等待获取任务
     while (1) 
     {
         syncQueue.Take(job);    //没有取到任务即阻塞在此
-
         my_Lock.lock();     //空闲线程-1
         poolInFree--;
         my_Lock.unlock();

@@ -63,7 +63,6 @@ int Epoll::disconnect(int fd, int err) //判断连接断开是否正常
     else 
     {
         cout << fd << "与客户端断开连接" << endl;
-        epoll_Ctl(fd, EPOLL_CTL_DEL);
         return 1;
     }
 }
@@ -71,7 +70,8 @@ int Epoll::disconnect(int fd, int err) //判断连接断开是否正常
 void Epoll::epoll_Run() 
 {
     int ret;
-    signal(SIGINT, SIG_IGN);
+    signal(SIGINT, SIG_IGN);    //忽略软中断
+    signal(SIGPIPE, SIG_IGN);   //忽略sigpipe 
     while (stopEpoll) 
     {
         ret = epoll_wait(epollFd, events, FDNUMBER, 0); //执行一次非阻塞检查
@@ -98,17 +98,10 @@ int Epoll::newConnect(int listenfd) //新的连接
     return connfd;
 }
 
-void Epoll::reply(int fd) 
-{
-    char buffer[] = "查无此文件!";
-    send(fd, buffer, sizeof(buffer), 0);
-}
-
 void Epoll::assignedTask(int fd) //读取客户端的下载请求并分配任务
 {
     Task job;
     int ret = 0;
-    // while (ret = recv(fd, (void*)&buffer, sizeof(buffer), 0)) //读取客户端发来的请求
     while (1)
     {
         ret = recv(fd, (void*)&job, sizeof(job), 0);
@@ -116,7 +109,6 @@ void Epoll::assignedTask(int fd) //读取客户端的下载请求并分配任务
         {
             break;
         }
-        //这该做什么操作呢...
         cout << "接受请求ing...." << endl;
     }
         
@@ -125,14 +117,15 @@ void Epoll::assignedTask(int fd) //读取客户端的下载请求并分配任务
         int flag = disconnect(fd, errno);  //判断是否是因为断开连接
         if (flag) 
         {
-            // return ;
+            epoll_Ctl(fd, EPOLL_CTL_DEL);
         }
     }
 
     ifstream fin(job.base.from);
-    if (!fin.is_open())     //无此文件
+    if (!fin)    
     {
         cout << "无此文件" << endl;
+        return;
     }
     struct stat s;
     stat(job.base.from, &s);   //获取文件的大小
@@ -143,11 +136,16 @@ void Epoll::assignedTask(int fd) //读取客户端的下载请求并分配任务
     {
         job.inFo.Id = i;
         job.inFo.clientFd = fd;
+// cout << "fd==" << job.inFo.clientFd << endl;
         job.inFo.Size = size;
+// cout << "size==" << job.inFo.Size << endl;
         job.inFo.Location = size * job.inFo.Id / job.base.num;
+// cout << "lo==" << job.inFo.Location << endl;
         job.inFo.writen = job.inFo.Location;
+// cout << "writen=" << job.inFo.writen << endl;
         job.inFo.Bytes = size / job.base.num;
-
+// cout << "by=" << job.inFo.Bytes << endl;
+// cout << "*********************************************************" << endl;
         threadPool.addTask(job);        //添加任务到任务队列
     }
 }
@@ -156,15 +154,22 @@ void Epoll::epollET(int epollFd, epoll_event* events, int ret)
 {
     for (int i = 0; i < ret; i++) 
     {
-        if (events[i].data.fd == listenfd) 
+        if (events[i].events & EPOLLIN) //有EPOLLIN事件
         {
-            int connfd = newConnect(listenfd);
-            cout << "有新连接" << connfd << endl;
-            epoll_Ctl(connfd, EPOLL_CTL_ADD);   //将新的连接socketfd添加到合集
+            if (events[i].data.fd == listenfd)  //是新的连接请求
+            {
+                int connfd = newConnect(listenfd);
+                cout << "有新连接" << connfd << endl;
+                epoll_Ctl(connfd, EPOLL_CTL_ADD);   //将新的连接socketfd添加到合集
+            }
+            else    //是下载请求
+            {
+                assignedTask(events[i].data.fd);
+            }
         }
-        else if (events[i].events & EPOLLIN) 
+        else if (events[i].events & EPOLLRDHUP)     //是客户端断开连接 
         {
-            assignedTask(events[i].data.fd);
+            disconnect(events[i].data.fd, errno);
         }
     }
 }
