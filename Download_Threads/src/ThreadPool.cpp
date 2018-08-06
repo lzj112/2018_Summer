@@ -71,13 +71,13 @@ void Pool::sendNoBreak(Task job) //读取文件,发送到客户端
         {
             job.inFo.ret = ret;
             job.base.isBreak += ret;
-
+cout << "1发送数据=" << job.base.from << "===" << job.base.to << "=" << endl;
             int byte = send(job.inFo.clientFd, (void*)&job, sizeof(job), 0);
             if (byte <= 0) 
             {
                 break;
             }
-sleep(1);
+// sleep(1);
             location += ret;
             job.inFo.writen += ret;
             memset(job.buff, 0, sizeof(job.buff));
@@ -94,14 +94,13 @@ sleep(1);
             job.inFo.ret = ret;
             job.base.isBreak += ret;
             
-
+cout << "2发送数据=" << job.base.from << "===" << job.base.to << "=" << endl;
             int byte = send(job.inFo.clientFd, (void*)&job, sizeof(job), 0);
             if (byte <= 0) 
             {
                 break;
             }
-sleep(1);
-
+// sleep(1);
             job.inFo.writen += ret;
             memset(job.buff, 0, sizeof(job.buff));
         }
@@ -178,12 +177,12 @@ void Pool::judge(Task job) //判断是否是断点续传
 {
     if (job.base.isBreak != 1) 
     {
-// cout << "发送文件 " << endl;
+cout << "发送文件 " << endl;
         sendNoBreak(job);
     }
     else if (job.base.isBreak == 1) 
     {
-// cout << "开始断点续传" << endl;
+cout << "开始断点续传" << endl;
         sendFromBreak(job);
     }
 } 

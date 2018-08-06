@@ -27,6 +27,7 @@ public:
     void addRecord(Task job, int breakpoint);
     void applyBreCon(Task& job, std::string flag); //查看有无断点 
     void saveRecord();  
+    void turnTo(std::string a, std::string b, std::string c);
 };
 
 #endif

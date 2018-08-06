@@ -46,6 +46,7 @@ void Epoll::epoll_Ctl(int fd, int op)   //修改事件合集(添加/删除)
 void Epoll::Stop() //停止程序
 {
     stopEpoll = false;
+    close(epollFd);
     threadPool.stopPool();
 }
 
@@ -167,3 +168,4 @@ void Epoll::epollET(int epollFd, epoll_event* events, int ret)
         }
     }
 }
+
