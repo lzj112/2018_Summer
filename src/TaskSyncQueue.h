@@ -11,7 +11,7 @@
 class TaskQueue 
 {
 private:
-    std::vector<Task> Queue;                //任务队列
+    std::vector<DownloadMsg> Queue;                //任务队列
     std::mutex my_Lock;                     //互斥锁
     std::condition_variable_any cv_Any;     //条件变量
     bool stopQueue;                         //是否停止
@@ -19,8 +19,8 @@ private:
 public:
     TaskQueue();
     int get_Size();                 //计算任务队列内的任务数
-    void Add(Task task);            //添加任务
-    void Take(Task& task);          //取出任务
+    void Add(DownloadMsg task);            //添加任务
+    void Take(DownloadMsg& task);          //取出任务
     void stopAll();                 //停止 唤醒所有等待线程
 
 };

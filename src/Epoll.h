@@ -25,6 +25,7 @@ public:
     void epollET(int epollFd, epoll_event* EVENTS, int ret);
     int disconnect(int fd, int err);
     void setNonblockFd(int fd);   
+    void acceptPackage(int fd, DownloadMsg& job);
     void assignedTask(int listenfd);   
     int newConnect(int listenfd);
     

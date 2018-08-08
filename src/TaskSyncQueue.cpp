@@ -11,7 +11,7 @@ int TaskQueue::get_Size()
     return Queue.empty() ? 0 : Queue.size();
 }
 
-void TaskQueue::Add(Task task) 
+void TaskQueue::Add(DownloadMsg task) 
 {
     my_Lock.lock();
     if (stopQueue) 
@@ -24,7 +24,7 @@ void TaskQueue::Add(Task task)
     my_Lock.unlock();
 }
 
-void TaskQueue::Take(Task& task) 
+void TaskQueue::Take(DownloadMsg& task) 
 {
     my_Lock.lock();
     while (Empty)  //等待任务队列不为空 

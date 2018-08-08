@@ -18,6 +18,7 @@ int main()
     int n;
     int flag;
     cin >> n;
+    getchar();
     while (n--) 
     {
         flag = 0;
@@ -26,7 +27,8 @@ int main()
         {
             flag = 0;
         }
-        flag = t(str);
+        else
+            flag = t(str);
         if (flag) 
         {
             cout << "yes" << endl;

@@ -22,11 +22,11 @@ public:
     Pool();
     void performTask();
     void stopPool();
-    void addTask(Task task);
-    void judge(Task job);   //判断是否是断线续传
+    void addTask(DownloadMsg task);
+    void judge(DownloadMsg job);   //判断是否是断线续传
     void incThreads();
-    void sendFromBreak(Task job);       //断点续传发送文件
-    void sendNoBreak(Task job);    //不是断点续传
+    void sendFromBreak(DownloadMsg job);       //断点续传发送文件
+    void sendNoBreak(DownloadMsg job);    //不是断点续传
 };
 
 #endif

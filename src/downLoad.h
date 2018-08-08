@@ -11,7 +11,7 @@
 class downLoad 
 {
 private:
-    Task buff;
+    RequestMsg request;
     int sockFd;
     std::thread t;
     std::mutex my_lock;
@@ -21,11 +21,11 @@ private:
 public:
     downLoad(int fd);
     void recvFile();
-    void jointFile(Task job);
+    void jointFile(DownloadMsg recvTmp);
     void run();
     void stop();
-    void addRecord(Task job, int breakpoint);
-    void applyBreCon(Task& job, std::string flag); //查看有无断点 
+    void addRecord(DownloadMsg recvTmp);
+    void applyBreCon(RequestMsg& job, std::string flag); //查看有无断点 
     void saveRecord();  
     void turnTo(std::string a, std::string b, std::string c);
 };

@@ -99,20 +99,20 @@ int Epoll::newConnect(int listenfd) //新的连接
     return connfd;
 }
 
-void Epoll::assignedTask(int fd) //读取客户端的下载请求并分配任务
+void Epoll::acceptPackage(int fd, DownloadMsg& job) 
 {
-    Task job;
     int ret = 0;
-    while (1)
+    int sum = 0, len = 0, count = 0;
+    while (sum < sizeof(job.head))   //先收包头
     {
-        ret = recv(fd, (void*)&job, sizeof(job), 0);
+        ret = recv(fd, (void*)(&job + sum), sizeof(job.head), 0);
         if (ret <= 0) 
         {
             break;
         }
+        sum += ret;
         cout << "接受请求ing...." << endl;
     }
-        
     if (ret < 0) 
     {
         int flag = disconnect(fd, errno);  //判断是否是因为断开连接
@@ -121,26 +121,55 @@ void Epoll::assignedTask(int fd) //读取客户端的下载请求并分配任务
             epoll_Ctl(fd, EPOLL_CTL_DEL);
         }
     }
+    sum = 0, ret = 0;
+    len = job.head.packetLength;
+    while (sum < len)      //收包体
+    {
+        ret = recv(fd, (void*)(&job.body + sum), sizeof(job.body), 0);
+        if (ret <= 0) 
+        {
+            break;
+        }
+        sum += ret;
+        cout << "接受请求ing...." << endl;
+    }
+    if (ret < 0) 
+    {
+        int flag = disconnect(fd, errno);  //判断是否是因为断开连接
+        if (flag) 
+        {
+            epoll_Ctl(fd, EPOLL_CTL_DEL);
+        }
+    }
+}
 
-    ifstream fin(job.base.from);
+void Epoll::assignedTask(int fd) //读取客户端的下载请求并分配任务
+{
+    DownloadMsg job;
+    // MyHead headTmp;
+    // Buff buff;
+    acceptPackage(fd, job);   //接收协议体
+
+    ifstream fin(job.body.base.from);
     if (!fin)    
     {
         cout << "无此文件" << endl;
         return;
     }
     struct stat s;
-    stat(job.base.from, &s);   //获取文件的大小
+    stat(job.body.base.from, &s);   //获取文件的大小
     int size = s.st_size;
 
-    int tmp = job.base.num;   //分成num个任务块
+    int tmp = job.body.base.num;   //分成num个任务块
+    job.head.serviceType = job.head.serviceType; //等于1时为断点续传, -1时为普通下载请求
     for (int i = 0; i < tmp; i++) 
     {
-        job.inFo.Id = i;
-        job.inFo.clientFd = fd;
-        job.inFo.Size = size;
-        job.inFo.Location = size * job.inFo.Id / job.base.num;
-        job.inFo.writen = job.inFo.Location;
-        job.inFo.Bytes = size / job.base.num;
+        job.body.inFo.Id = i;
+        job.body.inFo.clientFd = fd;
+        job.body.inFo.Size = size;
+        job.body.inFo.Location = size * job.body.inFo.Id / job.body.base.num;
+        job.body.inFo.writen = job.body.inFo.Location;
+        job.body.inFo.Bytes = size / job.body.base.num;
         threadPool.addTask(job);        //添加任务到任务队列
     }
 }

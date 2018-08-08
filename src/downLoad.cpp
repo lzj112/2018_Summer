@@ -37,20 +37,20 @@ void downLoad::stop()
 }
 
 
-void downLoad::addRecord(Task job, int breakpoint) 
+void downLoad::addRecord(DownloadMsg recvTmp) 
 {
-    auto it = record.find(job.base.from);
+    auto it = record.find(recvTmp.body.base.from);
     if (it == record.end()) 
     {
         // cout << "emmmm未知的错误发生了" << endl;
     }
 
     int fd  = open(it->second, O_WRONLY);
-    lseek(fd, job.inFo.Location, SEEK_SET);
+    lseek(fd, recvTmp.body.inFo.Location, SEEK_SET);
 
     string s;
     char p[20];
-    s = to_string(breakpoint);
+    s = to_string(recvTmp.body.base.isBreak);
 
     strcpy(p, s.c_str());
     int len = strlen (p);
@@ -68,78 +68,90 @@ void downLoad::saveRecord() //将record内容写入文件
 
     for (auto x : record) 
     {
+// cout << "----------" << x.first << ' ' << x.second << endl;
         fout << x.first << ' ' << x.second << '\n';
     }
-    cout << "save successful" << endl;
+    // cout << "save successful" << endl;
 }
 
-void downLoad::jointFile(Task job) 
+void downLoad::jointFile(DownloadMsg recvTmp) 
 {
 
-    int fd = open(job.base.to, ios::binary |O_WRONLY | O_CREAT, S_IWUSR | S_IRUSR);
+    int fd = open(recvTmp.body.base.to, ios::binary |O_WRONLY | O_CREAT, S_IWUSR | S_IRUSR);
     if (fd == -1) 
     { 
         // cout << "Errno ===== " <<errno << endl;
         // fd = open("/home/lzj/test/tmp", O_WRONLY | O_CREAT, S_IWUSR | S_IRUSR);
     }
         
-    pwrite(fd, job.buff, job.inFo.ret, job.inFo.writen);
+    pwrite(fd, recvTmp.body.buff, recvTmp.body.inFo.ret, recvTmp.body.inFo.writen);
     close(fd);
     
     my_lock.lock();
-    addRecord(job, job.base.isBreak);    //添加断点
+    addRecord(recvTmp);    //添加断点
     my_lock.unlock();
 }
 
 void downLoad::recvFile() //接收服务器发来的数据
 {
-    Task job;
-    
+    DownloadMsg recvTmp;
+    int sum, len, ret;
+
     while (running) 
     {   
-        memset(&job, 0, sizeof(job));
-
-        int ret = recv(sockFd, (void*)&job, sizeof(job), 0);
-        assert(ret >= 0);
-cout << "收到数据=" << job.base.from << "===" << job.base.to << "=" << endl;
-        if (ret == 0) 
+        sum = 0;
+        ret = 0;
+        memset(&recvTmp, 0, sizeof(recvTmp));
+        while (sum < sizeof(MyHead)) //先收包头
         {
-            std::cout << "与服务器断开连接" << std::endl;
-            break;
+            int ret = recv(sockFd, (void*)(&recvTmp + sum), sizeof(MyHead), 0);
+            if (ret == 0) 
+            {
+                std::cout << "与服务器断开连接" << std::endl;
+                stop();
+                break;
+            }
+            sum += ret;
         }
-        mergeThreads.push_back(thread(&downLoad::jointFile, this, job));
-// try {
-//         mergeThreads.push_back(thread(&downLoad::jointFile, this, job));
-//     } catch(const std::system_error& e) {
-//         std::cout << "Caught system_error with code " << e.code() 
-//                   << " meaning " << e.what() << '\n';      
-//     }
+        sum = 0, len = recvTmp.head.packetLength;
+        while (sum < len)  //再收包体
+        {
+            int ret = recv(sockFd, (void*)(&recvTmp.body + sum), sizeof(Task), 0);
+            if (ret == 0) 
+            {
+                std::cout << "与服务器断开连接" << std::endl;
+                stop();
+                break;
+            }
+            sum += ret;
+        }
+// cout << "recv something" << endl;
+        mergeThreads.push_back(thread(&downLoad::jointFile, this, recvTmp));
     }
 }
 
-void downLoad::applyBreCon(Task& job, string flag) 
+void downLoad::applyBreCon(RequestMsg& job, string flag) 
 {
     char fileName[50];
-    strcpy(fileName, job.base.from);
+    strcpy(fileName, job.buff.from);
     const char* str = "_tmp";
     strcat(fileName, str);
 
-    auto it = record.find(job.base.from);
+    auto it = record.find(job.buff.from);
     if (it == record.end()) //此前无记录
     {
-        record.insert(make_pair(job.base.from, fileName));
-cout << endl;///////
+        record.insert(make_pair(job.buff.from, fileName));
         saveRecord();
-        job.base.isBreak = -1;
+        job.head.serviceType = -1;  //普通下载请求
         int fd = open(fileName, O_RDONLY | O_CREAT, S_IWUSR | S_IRUSR); //创建临时文件
         close(fd);
     }
     if (flag == "1")    //这里如果文件没有内容用户还输入1,会有问题尚未解决
     {
-        job.base.isBreak = 1;   //有断点续传的文件  
+        job.head.serviceType = 1;   //有断点续传的文件  
         ifstream fin(it->second);
         int i = 0;
-        while (fin >>  job.breakPoint[i++]) 
+        while (fin >>  job.buff.breakPoint[i++]) 
         {
             
         }
@@ -155,13 +167,17 @@ cout << endl;///////
 
 void downLoad::turnTo(string a, string b, string c) 
 {
-    strcpy(buff.base.from, a.c_str());
-    strcpy(buff.base.to, b.c_str());
+    strcpy(request.buff.from, a.c_str());
+    strcpy(request.buff.to, b.c_str());
 
     if (c[0] < '0' || c[0] > '9' && c[1] < '0' && c[1] > '9')
-        buff.base.num = 0;
+    {
+        request.buff.num = 0;
+    }
     else 
-        buff.base.num = stoi(c);
+    {
+        request.buff.num = stoi(c);
+    }
 }
 
 void downLoad::run() 
@@ -174,7 +190,8 @@ void downLoad::run()
     string fromTmp, toTmp, numTmp, flagTmp;
     while (running) 
     {
-        memset(&buff, 0, sizeof(buff));
+        memset(&request, 0, sizeof(request));
+        request.head.serviceType = -1;  //普通下载请求
 
         std::cout << "输入想要下载的文件名:" << std::endl;
         std::cin >> fromTmp;
@@ -194,19 +211,20 @@ void downLoad::run()
         {
             turnTo(fromTmp, toTmp, numTmp);
         }
-        if (!strcmp(buff.base.from, "0") && !strcmp(buff.base.to, "0")) 
+        if (!strcmp(request.buff.from, "0") && !strcmp(request.buff.to, "0")) 
         {
             stop();
             break;
         }
-        else if (buff.base.num == 0) 
+        else if (request.buff.num == 0) 
         {
             continue;
         }
         else 
         {
-            applyBreCon(buff, flag);  //有记录就申请断点续传 没有就添加
-            int ret = send(sockFd, (void*)&buff, sizeof(buff), 0);
+            applyBreCon(request, flag);  //有记录就申请断点续传 没有就添加
+            request.head.packetLength = sizeof(request.buff);
+            int ret = send(sockFd, (void*)&request, sizeof(request), 0);
         }
     }
     cout << "-------------------客户端退出---------------------" << endl;
