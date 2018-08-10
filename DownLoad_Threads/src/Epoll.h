@@ -5,6 +5,8 @@
 #include "Task.h"
 #include "TaskSyncQueue.h"
 #include "ThreadPool.h"
+#include "TimerWheel.h"
+#include "TimerClass.h"
 const int FDNUMBER = 1024;
 
 class Epoll 
@@ -15,6 +17,8 @@ private:
     int listenfd;             //监听socketfd
     bool stopEpoll;         //停止标志
     Pool threadPool;        //线程池
+    TimeWheel timeWheel;   //时间轮
+    int timerFd;           //定时器fd
 public:
     Epoll(int fd);
     ~Epoll();
@@ -28,7 +32,9 @@ public:
     void acceptPackage(int fd, DownloadMsg& job);
     void assignedTask(int listenfd);   
     int newConnect(int listenfd);
-    
-};
+    void shutDownFd(int fd);
+    void addToTimeWheel(int fd);
+    void setTimer();
+}; 
 
 #endif

@@ -9,6 +9,8 @@
 #include <netinet/in.h>
 #include <fstream>
 #include <cstring>
+#include <functional>
+#include <sys/timerfd.h>
 using namespace std;
 
 Epoll::Epoll(int fd) 
@@ -36,8 +38,9 @@ void Epoll::setNonblockFd(int fd) //设置为非阻塞
 void Epoll::epoll_Ctl(int fd, int op)   //修改事件合集(添加/删除)
 {
     // setNonblockFd(fd);
-
+cout << "here is epoll_ctl " << fd << endl;
     epoll_event ev;
+    memset(&ev, 0, sizeof(ev));
     ev.data.fd = fd;
     ev.events = EPOLLIN | EPOLLET;
     epoll_ctl(epollFd, op, fd, &ev);
@@ -68,11 +71,41 @@ int Epoll::disconnect(int fd, int err) //判断连接断开是否正常
     }
 }
 
+void Epoll::addToTimeWheel(int fd) //将新连接fd封装为定时器添加到时间轮
+{
+    Timer* timer = new Timer(fd/*, &Epoll::shutDown*/);
+    // timer->func = bind(&Epoll::shutDownFd, *this, placeholders::_1);
+    timer->rotation = 0;
+    timeWheel.addTimer(timer);
+}
+
+void Epoll::setTimer() //初始化, 设置定时
+{
+    int ret;
+    struct itimerspec newValue;
+    struct timespec nowTime;
+    ret = clock_gettime(CLOCK_REALTIME, &nowTime);  //得到现在的时间
+    assert(ret != -1); 
+
+    newValue.it_value.tv_sec = nowTime.tv_sec + 1;   //第一次到期时间
+    newValue.it_value.tv_nsec = nowTime.tv_nsec;
+    newValue.it_interval.tv_sec = 3;//timeWheel.getSi();    //时间间隔
+    newValue.it_interval.tv_nsec = 0;
+
+    timerFd = timerfd_create(CLOCK_REALTIME, /*0*/TFD_NONBLOCK);   //构建了一个非阻塞的定时器,相对时间
+    assert(timerFd != -1);
+    ret = timerfd_settime(timerFd, TFD_TIMER_ABSTIME, &newValue, nullptr);
+    assert(ret != -1);
+
+    epoll_Ctl(timerFd, EPOLL_CTL_ADD);  //将指代该定时器对象的文件描述符添加进epoll事件合集
+}
+
 void Epoll::epoll_Run() 
 {
     int ret;
     signal(SIGINT, SIG_IGN);    //忽略软中断
     signal(SIGPIPE, SIG_IGN);   //忽略sigpipe 
+    setTimer();
     while (stopEpoll) 
     {
         ret = epoll_wait(epollFd, events, FDNUMBER, 0); //执行一次非阻塞检查
@@ -146,8 +179,6 @@ void Epoll::acceptPackage(int fd, DownloadMsg& job)
 void Epoll::assignedTask(int fd) //读取客户端的下载请求并分配任务
 {
     DownloadMsg job;
-    // MyHead headTmp;
-    // Buff buff;
     acceptPackage(fd, job);   //接收协议体
 
     ifstream fin(job.body.base.from);
@@ -184,11 +215,21 @@ void Epoll::epollET(int epollFd, epoll_event* events, int ret)
             {
                 int connfd = newConnect(listenfd);
                 cout << "有新连接" << connfd << endl;
-                epoll_Ctl(connfd, EPOLL_CTL_ADD);   //将新的连接socketfd添加到合集
+                epoll_Ctl(connfd, EPOLL_CTL_ADD);   //将新的连接socketfd添加到合集 
+                addToTimeWheel(connfd);  //更新socket活跃度
             }
-            else    //是下载请求
+            else if (events[i].data.fd != timerFd)    //是下载请求
             {
-                assignedTask(events[i].data.fd);
+                timeWheel.adjust(events[i].data.fd);
+                assignedTask(events[i].data.fd);    //解析下载请求
+            }
+            else
+            {
+                uint64_t numExp;
+                ssize_t s = read(events[i].data.fd, &numExp, sizeof(uint64_t));
+                if (s == sizeof(uint64_t)) 
+                timeWheel.tick();   //指定定时任务
+cout << "here is after tick()" << endl;
             }
         }
         else if (events[i].events & EPOLLRDHUP)     //是客户端断开连接 

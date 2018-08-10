@@ -68,10 +68,8 @@ void downLoad::saveRecord() //将record内容写入文件
 
     for (auto x : record) 
     {
-// cout << "----------" << x.first << ' ' << x.second << endl;
         fout << x.first << ' ' << x.second << '\n';
     }
-    // cout << "save successful" << endl;
 }
 
 void downLoad::jointFile(DownloadMsg recvTmp) 
@@ -225,6 +223,10 @@ void downLoad::run()
             applyBreCon(request, flag);  //有记录就申请断点续传 没有就添加
             request.head.packetLength = sizeof(request.buff);
             int ret = send(sockFd, (void*)&request, sizeof(request), 0);
+            if (ret == 0) 
+            {
+                stop();
+            }
         }
     }
     cout << "-------------------客户端退出---------------------" << endl;
