@@ -117,7 +117,7 @@ void Epoll::epoll_Run()
         }
         else 
         {
-            cout << "有新的请求" << endl;
+            // cout << "有新的请求" << endl;
             epollET(epollFd, events, ret);  //有事件
         }
     }
@@ -152,6 +152,7 @@ void Epoll::acceptPackage(int fd, DownloadMsg& job)
         if (flag) 
         {
             epoll_Ctl(fd, EPOLL_CTL_DEL);
+            close(fd);
         }
     }
     sum = 0, ret = 0;
@@ -172,6 +173,7 @@ void Epoll::acceptPackage(int fd, DownloadMsg& job)
         if (flag) 
         {
             epoll_Ctl(fd, EPOLL_CTL_DEL);
+            close(fd);
         }
     }
 }
@@ -229,7 +231,7 @@ void Epoll::epollET(int epollFd, epoll_event* events, int ret)
                 ssize_t s = read(events[i].data.fd, &numExp, sizeof(uint64_t));
                 if (s == sizeof(uint64_t)) 
                 timeWheel.tick();   //指定定时任务
-cout << "here is after tick()" << endl;
+// cout << "here is after tick()" << endl;
             }
         }
         else if (events[i].events & EPOLLRDHUP)     //是客户端断开连接 

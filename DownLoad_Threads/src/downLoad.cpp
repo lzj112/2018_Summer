@@ -25,15 +25,22 @@ downLoad::downLoad(int fd) : sockFd(fd), running(true)
     }
 }
 
-void downLoad::stop() 
+bool downLoad::stop() 
 {
+cout << "STOP!" << endl;
     running = false;
     my_lock.~mutex();
     for (auto& x : mergeThreads) 
     {
         x.join();
     }
+    // for (auto it = mergeThreads.begin(); it != mergeThreads.end(); it++) 
+    // {
+    //     it = mergeThreads.erase(it);
+    // }
     close(sockFd);
+cout << "------------------" << endl;
+    return true;
 }
 
 
@@ -94,6 +101,7 @@ void downLoad::recvFile() //接收服务器发来的数据
 {
     DownloadMsg recvTmp;
     int sum, len, ret;
+    bool flag = false;
 
     while (running) 
     {   
@@ -105,8 +113,8 @@ void downLoad::recvFile() //接收服务器发来的数据
             int ret = recv(sockFd, (void*)(&recvTmp + sum), sizeof(MyHead), 0);
             if (ret == 0) 
             {
-                std::cout << "与服务器断开连接" << std::endl;
-                stop();
+                std::cout << "与服务器断开连接1" << std::endl;
+                flag = stop();
                 break;
             }
             sum += ret;
@@ -117,15 +125,16 @@ void downLoad::recvFile() //接收服务器发来的数据
             int ret = recv(sockFd, (void*)(&recvTmp.body + sum), sizeof(Task), 0);
             if (ret == 0) 
             {
-                std::cout << "与服务器断开连接" << std::endl;
-                stop();
+                std::cout << "与服务器断开连接2" << std::endl;
+                flag = stop();
                 break;
             }
             sum += ret;
         }
-// cout << "recv something" << endl;
+        if (!flag)
         mergeThreads.push_back(thread(&downLoad::jointFile, this, recvTmp));
     }
+cout << "*a*a*a*a*a**a*a" << endl;
 }
 
 void downLoad::applyBreCon(RequestMsg& job, string flag) 
@@ -200,6 +209,10 @@ void downLoad::run()
         std::cout << "是否从继续下载(1/0) : " << std::endl;
         std::cin >> flag;
 
+        if (!running) 
+        {
+            break;
+        }
         if (fromTmp.size() >49 || toTmp.size() > 49 || numTmp.size() > 2) 
         {
             std::cout << "输入有误" << endl;
@@ -207,6 +220,7 @@ void downLoad::run()
         }
         else 
         {
+cout << "33333333333333" << endl;
             turnTo(fromTmp, toTmp, numTmp);
         }
         if (!strcmp(request.buff.from, "0") && !strcmp(request.buff.to, "0")) 
@@ -216,10 +230,16 @@ void downLoad::run()
         }
         else if (request.buff.num == 0) 
         {
+cout << "44444444444444" << endl;
             continue;
         }
         else 
         {
+            if (!running) 
+            {
+cout << "?????????" << endl;
+                break;
+            }
             applyBreCon(request, flag);  //有记录就申请断点续传 没有就添加
             request.head.packetLength = sizeof(request.buff);
             int ret = send(sockFd, (void*)&request, sizeof(request), 0);

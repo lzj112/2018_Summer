@@ -76,11 +76,12 @@ void TimeWheel::getTime(time_t& time)
 {
     struct timeval tv;
     gettimeofday(&tv, nullptr); 
-    time = tv.tv_sec + tv.tv_usec / 1000000 + 5;  //定时时间30s
+    time = tv.tv_sec + tv.tv_usec / 1000000 + 20;  //定时时间30s
 }
 
 void TimeWheel::adjust(int fd) 
 {
+cout << "herer is adjust" << endl;
     bool flag = false;
     list<Timer*>::iterator it;
     for (int i = 0; i < N; i++) //每个槽

@@ -19,13 +19,13 @@ struct Timer
     {
         struct timeval tv;
         gettimeofday(&tv, nullptr); 
-        clock = tv.tv_sec + tv.tv_usec / 1000000 + 1;  //定时时间
+        clock = tv.tv_sec + tv.tv_usec / 1000000 + 10;  //定时时间
     }
     void func() 
     {
         shutdown(clientFd, SHUT_RDWR);
         // close(clientFd);
-std::cout << "SHUTDOWN!" << std::endl;
+// std::cout << "SHUTDOWN!" << std::endl;
     }
     
 };

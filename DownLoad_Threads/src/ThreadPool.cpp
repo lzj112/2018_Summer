@@ -74,11 +74,12 @@ void Pool::sendNoBreak(DownloadMsg job) //读取文件,发送到客户端
             job.body.inFo.ret = ret;
             job.body.base.isBreak += ret;
             job.head.packetLength = sizeof(job.body);
-// cout << "1发送数据=" << job.body.inFo.clientFd << endl;
             int byte = send(job.body.inFo.clientFd, (void*)&job, sizeof(job), 0);
-            if (byte <= 0) 
+            if (byte == 0) 
             {
-                break;
+                if (errno != EAGAIN && errno != EINTR && errno != EWOULDBLOCK)
+                    break;
+cout << errno << "*********" << endl;
             }
 // sleep(1);
             location += ret;
@@ -97,21 +98,17 @@ void Pool::sendNoBreak(DownloadMsg job) //读取文件,发送到客户端
             job.body.inFo.ret = ret;
             job.body.base.isBreak += ret;
             job.head.packetLength = sizeof(job.body);
-// cout << "2发送数据=" << job.body.inFo.clientFd << endl;
             int byte = send(job.body.inFo.clientFd, (void*)&job, sizeof(job), 0);
-//             if (byte < 0) 
-//             {
-// cout << "errno = " << errno << endl;
-//             }
             if (byte == 0) 
             {
-                break;
+                if (errno != EAGAIN && errno != EINTR && errno != EWOULDBLOCK)
+                    break;
+cout << "++++++++++++" << endl;
             }
 // sleep(1);
             job.body.inFo.writen += ret;
             memset(job.body.buff, 0, sizeof(job.body.buff));
         }
-// cout << "*****************" << sum << ' ' << job.body.inFo.Bytes << endl;
     }
     close(fd);
 }
@@ -149,9 +146,10 @@ void Pool::sendFromBreak(DownloadMsg job)
             job.body.base.isBreak += ret;
             job.head.packetLength = sizeof(job.body);
             int byte = send(job.body.inFo.clientFd, (void*)&job, sizeof(job), 0);
-            if (byte <= 0) 
+            if (byte == 0) 
             {
-                break;
+                if (errno != EAGAIN && errno != EINTR && errno != EWOULDBLOCK)
+                    break;
             }
             location += ret;
             job.body.inFo.writen += ret;
@@ -170,9 +168,10 @@ void Pool::sendFromBreak(DownloadMsg job)
             job.body.base.isBreak += ret;
             job.head.packetLength = sizeof(job.body);
             int byte = send(job.body.inFo.clientFd, (void*)&job, sizeof(job), 0);
-            if (byte <= 0) 
+            if (byte == 0) 
             {
-                break;
+                if (errno != EAGAIN && errno != EINTR && errno != EWOULDBLOCK)
+                    break;
             }
             job.body.inFo.writen += ret;
             memset(job.body.buff, 0, sizeof(job.body.buff));

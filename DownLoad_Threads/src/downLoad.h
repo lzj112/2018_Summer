@@ -23,7 +23,7 @@ public:
     void recvFile();
     void jointFile(DownloadMsg recvTmp);
     void run();
-    void stop();
+    bool stop();
     void addRecord(DownloadMsg recvTmp);
     void applyBreCon(RequestMsg& job, std::string flag); //查看有无断点 
     void saveRecord();  
