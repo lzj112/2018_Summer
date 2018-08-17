@@ -3,32 +3,25 @@
 using namespace std;
 
 array<long long, 32768> count = {0};
-long long DP(int n) 
+void DP() 
 {
-    // cout << n << endl;
-    if (n == 1) 
+    for (int i = 1; i <= 3; i++) 
     {
-        return 1;
+        for (int j = i; j < 32768; j++) 
+        {
+            count[j] += count[j - i];
+        }
     }
-    if (n == 2) 
-    {
-        return 2;
-    }
-    // if (n == 3) 
-    // {
-    //     return 3;
-    // }
-    count[n] = DP(n - 1);// + DP(n - 2);// + DP(n - 3);
-    return count[n];
 }
 
 int main() 
 {
     int n;
+    count[0] = 1;
+    DP();
     while (cin >> n) 
     {
-        // n = n * 10;
-        cout << DP(n) << endl;
+        cout << count[n] << endl;
     }   
     return 0;
 }
