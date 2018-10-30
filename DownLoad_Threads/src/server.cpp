@@ -13,6 +13,9 @@ const char* IP = "127.0.0.1";
 const int PORT = 4096;
 int main() 
 {
+    /*
+    封装这段
+    */
     sockaddr_in serAddress;
     memset(&serAddress, 0, sizeof(serAddress));
     serAddress.sin_family = AF_INET;

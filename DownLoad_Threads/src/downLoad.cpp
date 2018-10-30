@@ -14,6 +14,9 @@ using namespace std;
 
 downLoad::downLoad(int fd) : sockFd(fd), running(true)
 {
+/*
+是不是应该将i和t的定义声明放到while循环前
+*/
     int i = 0;
     char tmp[5][50];
     string t;
@@ -27,19 +30,23 @@ downLoad::downLoad(int fd) : sockFd(fd), running(true)
 
 bool downLoad::stop() 
 {
-cout << "STOP!" << endl;
+    cout << "STOP!" << endl;
     running = false;
     my_lock.~mutex();
+    
+    //等待线程结束
     for (auto& x : mergeThreads) 
     {
         x.join();
     }
+/*
+清空mergeThreads, 可以把end的赋值放前面, 这样就不用每次都赋值一遍
+*/
     // for (auto it = mergeThreads.begin(); it != mergeThreads.end(); it++) 
     // {
     //     it = mergeThreads.erase(it);
     // }
     close(sockFd);
-cout << "------------------" << endl;
     return true;
 }
 
@@ -91,7 +98,10 @@ void downLoad::jointFile(DownloadMsg recvTmp)
         
     pwrite(fd, recvTmp.body.buff, recvTmp.body.inFo.ret, recvTmp.body.inFo.writen);
     close(fd);
-    
+
+/*
+lock_guard 是不是更好
+*/
     my_lock.lock();
     addRecord(recvTmp);    //添加断点
     my_lock.unlock();
@@ -99,6 +109,9 @@ void downLoad::jointFile(DownloadMsg recvTmp)
 
 void downLoad::recvFile() //接收服务器发来的数据
 {
+/*
+在使用前声明定义... 是为了防止使用前代码GG造成浪费么
+*/
     DownloadMsg recvTmp;
     int sum, len, ret;
     bool flag = false;
@@ -132,9 +145,13 @@ void downLoad::recvFile() //接收服务器发来的数据
             sum += ret;
         }
         if (!flag)
-        mergeThreads.push_back(thread(&downLoad::jointFile, this, recvTmp));
+        {
+            mergeThreads.emplace_back([this, recvTmp] {
+                jointFile(recvTmp);
+            });
+            // mergeThreads.push_back(thread(&downLoad::jointFile, this, recvTmp));
+        }
     }
-cout << "*a*a*a*a*a**a*a" << endl;
 }
 
 void downLoad::applyBreCon(RequestMsg& job, string flag) 
@@ -153,17 +170,16 @@ void downLoad::applyBreCon(RequestMsg& job, string flag)
         int fd = open(fileName, O_RDONLY | O_CREAT, S_IWUSR | S_IRUSR); //创建临时文件
         close(fd);
     }
-    if (flag == "1")    //这里如果文件没有内容用户还输入1,会有问题尚未解决
+    else if (flag == "1")    //这里如果文件没有内容用户还输入1,会有问题尚未解决
     {
         job.head.serviceType = 1;   //有断点续传的文件  
         ifstream fin(it->second);
         int i = 0;
         while (fin >>  job.buff.breakPoint[i++]) 
         {
-            
         }
     }
-    if (record.size() >= 5)     //只保留五次记录     
+    else if (record.size() >= 5)     //只保留五次记录     
     {
         auto it = record.begin();
         remove(it->second);    //删除文件
@@ -220,7 +236,6 @@ void downLoad::run()
         }
         else 
         {
-cout << "33333333333333" << endl;
             turnTo(fromTmp, toTmp, numTmp);
         }
         if (!strcmp(request.buff.from, "0") && !strcmp(request.buff.to, "0")) 
@@ -230,14 +245,12 @@ cout << "33333333333333" << endl;
         }
         else if (request.buff.num == 0) 
         {
-cout << "44444444444444" << endl;
             continue;
         }
         else 
         {
             if (!running) 
             {
-cout << "?????????" << endl;
                 break;
             }
             applyBreCon(request, flag);  //有记录就申请断点续传 没有就添加

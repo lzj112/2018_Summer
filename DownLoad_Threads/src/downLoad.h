@@ -14,6 +14,9 @@ private:
     RequestMsg request;
     int sockFd;
     std::thread t;
+/*
+mutex资源尝试使用RAII吧
+*/
     std::mutex my_lock;
     bool running;
     std::map<std::string, char*> record;    //记录文件名对应的保存断点的数组

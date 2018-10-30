@@ -25,7 +25,6 @@ struct Timer
     {
         shutdown(clientFd, SHUT_RDWR);
         // close(clientFd);
-// std::cout << "SHUTDOWN!" << std::endl;
     }
     
 };

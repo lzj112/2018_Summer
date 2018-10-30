@@ -12,6 +12,10 @@ const int PORT = 4096;
 const char* IP = "127.0.0.1";
 int main() 
 {
+/*
+这一段应该封装一下
+觉得还是OOP的思想运用理解的不到位
+*/
     sockaddr_in cliaddress;
     memset(&cliaddress, 0, sizeof(cliaddress));
     cliaddress.sin_family = AF_INET;
