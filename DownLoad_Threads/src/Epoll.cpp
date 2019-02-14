@@ -22,7 +22,7 @@ void Epoll::epoll_Create(int fd) //初始化　创建epoll句柄
 {
     stopEpoll = true;
     listenfd = fd;
-    epollFd = epoll_create(1);
+    epollFd = epoll_create(1);  
 
     setNonblockFd(fd);
     epoll_Ctl(fd, EPOLL_CTL_ADD);
@@ -86,10 +86,18 @@ void Epoll::setTimer() //初始化, 设置定时
     ret = clock_gettime(CLOCK_REALTIME, &nowTime); //得到现在的时间
     assert(ret != -1);
 
-    newValue.it_value.tv_sec = nowTime.tv_sec + 1; //第一次到期时间
-    newValue.it_value.tv_nsec = nowTime.tv_nsec;
-    newValue.it_interval.tv_sec = 3; //timeWheel.getSi();    //时间间隔
-    newValue.it_interval.tv_nsec = 0;
+    // newValue.it_value.tv_sec = nowTime.tv_sec + 1; //第一次到期时间
+    // newValue.it_value.tv_nsec = nowTime.tv_nsec;
+    // newValue.it_interval.tv_sec = 3; //timeWheel.getSi();    //时间间隔
+    // newValue.it_interval.tv_nsec = 0;
+    newValue = 
+    {
+        .it_value.tv_sec = nowTime.tv_sec + 1, //第一次到期时间
+        .it_value.tv_nsec = nowTime.tv_nsec,
+        .it_interval.tv_sec = 3, //timeWheel.getSi();    //时间间隔
+        .it_interval.tv_nsec = 0
+    };
+   
 
     timerFd = timerfd_create(CLOCK_REALTIME, /*0*/ TFD_NONBLOCK); //构建了一个非阻塞的定时器,相对时间
     assert(timerFd != -1);
@@ -141,10 +149,37 @@ int Epoll::newConnect(int listenfd) //新的连接
 收包头和包体的代码有很多重复部分,
 可以尝试封装一下, 提取相同过程, 模板函数?
 */
+int Epoll::recvFrom(int fd, void* ptr, int n) 
+{
+    int ret;
+    void* p = ptr;
+    int count = n;
+    while (count > 0) 
+    {
+        if ((ret = recv(fd, p, count, 0)) < 0) 
+        {
+            if (errno == EINTR) //信号
+            {
+                count = 0;
+            }
+            else 
+            {
+                return -1;
+            }
+        }
+        else if (count == 0)
+        {
+            break;
+        }
+        count -= ret;
+    }
+    return n - count;
+}
 void Epoll::acceptPackage(int fd, DownloadMsg &job)
 {
     int ret = 0;
     int sum = 0, len = 0, count = 0;
+    /*
     while (sum < sizeof(job.head)) //先收包头
     {
         ret = recv(fd, (void *)(&job + sum), sizeof(job.head), 0);
@@ -155,6 +190,8 @@ void Epoll::acceptPackage(int fd, DownloadMsg &job)
         sum += ret;
         cout << "接受请求ing...." << endl;
     }
+    */
+    ret = recvFrom(fd, (void *)(&job + sum), sizeof(job.head));
     if (ret < 0)
     {
         int flag = disconnect(fd, errno); //判断是否是因为断开连接
@@ -166,6 +203,7 @@ void Epoll::acceptPackage(int fd, DownloadMsg &job)
     }
     sum = 0, ret = 0;
     len = job.head.packetLength;
+    /*
     while (sum < len) //收包体
     {
         ret = recv(fd, (void *)(&job.body + sum), sizeof(job.body), 0);
@@ -176,6 +214,8 @@ void Epoll::acceptPackage(int fd, DownloadMsg &job)
         sum += ret;
         cout << "接受请求ing...." << endl;
     }
+    */
+    ret = recvFrom(fd, (void *)(&job.body + sum), sizeof(job.body));
     if (ret < 0)
     {
         int flag = disconnect(fd, errno); //判断是否是因为断开连接

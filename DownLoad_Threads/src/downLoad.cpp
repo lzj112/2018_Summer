@@ -17,6 +17,7 @@ downLoad::downLoad(int fd) : sockFd(fd), running(true)
 /*
 是不是应该将i和t的定义声明放到while循环前
 */
+    isStop = false;
     int i = 0;
     char tmp[5][50];
     string t;
@@ -30,9 +31,10 @@ downLoad::downLoad(int fd) : sockFd(fd), running(true)
 
 bool downLoad::stop() 
 {
+    isStop = true;
     cout << "STOP!" << endl;
     running = false;
-    my_lock.~mutex();
+    // my_lock.~mutex();
     
     //等待线程结束
     for (auto& x : mergeThreads) 
@@ -59,19 +61,24 @@ void downLoad::addRecord(DownloadMsg recvTmp)
         // cout << "emmmm未知的错误发生了" << endl;
     }
 
-    int fd  = open(it->second, O_WRONLY);
-    lseek(fd, recvTmp.body.inFo.Location, SEEK_SET);
+    // int fd  = open(it->second, O_WRONLY);
+    // lseek(fd, recvTmp.body.inFo.Location, SEEK_SET);
 
-    string s;
-    char p[20];
-    s = to_string(recvTmp.body.base.isBreak);
+    // string s;
+    // char p[20];
+    // s = to_string(recvTmp.body.base.isBreak);   //期望将int值strcpy至p
 
-    strcpy(p, s.c_str());
-    int len = strlen (p);
-    p[len + 1] = '\n';
-    p[len + 2] = '\0';
-    write(fd, p, sizeof(p));
-    close(fd);
+    // strcpy(p, s.c_str());
+    // int len = strlen (p);
+    // p[len + 1] = '\n';
+    // p[len + 2] = '\0';
+    // write(fd, p, sizeof(p));
+    // close(fd);
+    ofstream outFile;
+    outFile.open(it->second);
+    outFile.seekp(recvTmp.body.inFo.Location);
+    outFile << recvTmp.body.base.isBreak << '\n';
+    outFile.close();
 }
 
 
@@ -102,11 +109,39 @@ void downLoad::jointFile(DownloadMsg recvTmp)
 /*
 lock_guard 是不是更好
 */
-    my_lock.lock();
+    lock_guard<mutex> locker(my_lock);
+    // my_lock.lock();
     addRecord(recvTmp);    //添加断点
-    my_lock.unlock();
+    // my_lock.unlock();
 }
 
+int downLoad::recvFrom(int fd, void* ptr, int n) 
+{
+    int ret;
+    void* p = ptr;
+    int count = n;
+    while (count > 0) 
+    {
+        if ((ret = recv(fd, p, count, 0)) < 0) 
+        {
+            if (errno == EINTR) //信号
+            {
+                count = 0;
+            }
+            else 
+            {
+                stop();
+                return -1;
+            }
+        }
+        else if (count == 0)
+        {
+            break;
+        }
+        count -= ret;
+    }
+    return n - count;
+}
 void downLoad::recvFile() //接收服务器发来的数据
 {
 /*
@@ -121,6 +156,7 @@ void downLoad::recvFile() //接收服务器发来的数据
         sum = 0;
         ret = 0;
         memset(&recvTmp, 0, sizeof(recvTmp));
+        /*
         while (sum < sizeof(MyHead)) //先收包头
         {
             int ret = recv(sockFd, (void*)(&recvTmp + sum), sizeof(MyHead), 0);
@@ -132,7 +168,11 @@ void downLoad::recvFile() //接收服务器发来的数据
             }
             sum += ret;
         }
+        */
+        recvFrom(sockFd, (void *)(&recvTmp + sum), sizeof(MyHead));
+
         sum = 0, len = recvTmp.head.packetLength;
+        /*
         while (sum < len)  //再收包体
         {
             int ret = recv(sockFd, (void*)(&recvTmp.body + sum), sizeof(Task), 0);
@@ -144,7 +184,9 @@ void downLoad::recvFile() //接收服务器发来的数据
             }
             sum += ret;
         }
-        if (!flag)
+        */
+        recvFrom(sockFd, (void *)(&recvTmp.body + sum), sizeof(Task));
+        if (flag)
         {
             mergeThreads.emplace_back([this, recvTmp] {
                 jointFile(recvTmp);

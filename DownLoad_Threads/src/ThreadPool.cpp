@@ -15,8 +15,10 @@ Pool::Pool() : running(true), poolInFree(MAX_NUMBER)
     {
         /*
 emplace_back比push_back更加简洁,快速,直接原地构造
-*/      
-        threads.emplace_back([this] { performTask(); });
+*/
+        threads.emplace_back([this] {
+            performTask();
+        });
         // threads.emplace_back(&Pool::performTask, this);
         // threads.push_back(std::thread(&Pool::performTask, this));
     }
@@ -26,7 +28,10 @@ void Pool::incThreads()
 {
     for (int i = 0; i < 5; i++) //添加五个线程
     {
-        threads.push_back(std::thread(&Pool::performTask, this));
+        threads.emplace_back([this] {
+            performTask();
+        });
+        // threads.push_back(std::thread(&Pool::performTask, this));
     }
 }
 
@@ -57,6 +62,30 @@ void Pool::stopPool()
     });
 };
 
+int Pool::my_pread(int fd, int location, DownloadMsg &job)
+{
+    int ret = pread(fd, job.body.buff, sizeof(job.body.buff), location);
+    // job.body.inFo.ret = ret;
+    // job.body.base.isBreak += ret;
+    // job.head.packetLength = sizeof(job.body);
+    int size = job.body.base.isBreak;
+    job =
+        {
+            .body.inFo.ret = ret,
+            .body.base.isBreak = size + ret,
+            .head.packetLength = sizeof(job.body),
+        };
+    int byte = send(job.body.inFo.clientFd, (void *)&job, sizeof(job), 0);
+    if (byte == 0)
+    {
+        if (errno != EAGAIN && errno != EINTR && errno != EWOULDBLOCK)
+            return -1;
+    }
+    location += ret;
+    job.body.inFo.writen += ret;
+    memset(job.body.buff, 0, sizeof(job.body.buff));
+    return ret;
+}
 //使用pread函数,不移动文件指针,不造成竞争,不用上锁
 void Pool::sendNoBreak(DownloadMsg job) //读取文件,发送到客户端
 {
@@ -73,42 +102,18 @@ void Pool::sendNoBreak(DownloadMsg job) //读取文件,发送到客户端
     location = job.body.inFo.Location;
     if (job.body.base.num == (job.body.inFo.Id + 1)) //防止最后一部分按Bytes读,有剩余
     {
-        while (ret = pread(fd, job.body.buff, sizeof(job.body.buff), location)) //读到文件尾
+        do
         {
-            job.body.inFo.ret = ret;
-            job.body.base.isBreak += ret;
-            job.head.packetLength = sizeof(job.body);
-            int byte = send(job.body.inFo.clientFd, (void *)&job, sizeof(job), 0);
-            if (byte == 0)
-            {
-                if (errno != EAGAIN && errno != EINTR && errno != EWOULDBLOCK)
-                    break;
-            }
-            location += ret;
-            job.body.inFo.writen += ret;
-            memset(job.body.buff, 0, sizeof(job.body.buff));
-        }
+            ret = my_pread(fd, location, job);
+        } while (ret != 'EOF');
     }
     else //不是最后一部分的线程就按Bytes读取
     {
-        while (sum < job.body.inFo.Bytes)
+        do
         {
-            ret = pread(fd, job.body.buff, sizeof(job.body.buff), location); //从Location开始读
-
+            ret = my_pread(fd, location, job);
             sum += ret;
-            location += ret; //pread不会改变文件指针
-            job.body.inFo.ret = ret;
-            job.body.base.isBreak += ret;
-            job.head.packetLength = sizeof(job.body);
-            int byte = send(job.body.inFo.clientFd, (void *)&job, sizeof(job), 0);
-            if (byte == 0)
-            {
-                if (errno != EAGAIN && errno != EINTR && errno != EWOULDBLOCK)
-                    break;
-            }
-            job.body.inFo.writen += ret;
-            memset(job.body.buff, 0, sizeof(job.body.buff));
-        }
+        } while (sum < job.body.inFo.Bytes);
     }
     close(fd);
 }
@@ -139,42 +144,18 @@ void Pool::sendFromBreak(DownloadMsg job)
     job.body.inFo.Bytes = job.body.inFo.Location + job.body.inFo.Bytes - location;
     if (job.body.base.num == (job.body.inFo.Id + 1)) //防止最后一部分按Bytes读,有剩余
     {
-        while (ret = pread(fd, job.body.buff, 255, location)) //读到文件尾
+        do
         {
-            job.body.inFo.ret = ret;
-            job.body.base.isBreak += ret;
-            job.head.packetLength = sizeof(job.body);
-            int byte = send(job.body.inFo.clientFd, (void *)&job, sizeof(job), 0);
-            if (byte == 0)
-            {
-                if (errno != EAGAIN && errno != EINTR && errno != EWOULDBLOCK)
-                    break;
-            }
-            location += ret;
-            job.body.inFo.writen += ret;
-            memset(job.body.buff, 0, sizeof(job.body.buff));
-        }
+            ret = my_pread(fd, location, job);
+        } while (ret != 'EOF');
     }
     else //不是最后一部分的线程就按Bytes读取
     {
-        while (sum < job.body.inFo.Bytes)
+        do
         {
-            ret = pread(fd, job.body.buff, 255, location); //从Location开始读
-
+            ret = my_pread(fd, location, job);
             sum += ret;
-            location += ret; //pread不会改变文件指针
-            job.body.inFo.ret = ret;
-            job.body.base.isBreak += ret;
-            job.head.packetLength = sizeof(job.body);
-            int byte = send(job.body.inFo.clientFd, (void *)&job, sizeof(job), 0);
-            if (byte == 0)
-            {
-                if (errno != EAGAIN && errno != EINTR && errno != EWOULDBLOCK)
-                    break;
-            }
-            job.body.inFo.writen += ret;
-            memset(job.body.buff, 0, sizeof(job.body.buff));
-        }
+        } while (sum < job.body.inFo.Bytes);
     }
     close(fd);
 }

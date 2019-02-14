@@ -7,7 +7,7 @@ TimeWheel::~TimeWheel()
     bool flag = false;
     for (int i = 0; i < N; i++) //每一个槽
     {
-/*
+        /*
 for_each?
 */
         auto it = slots[i].begin();
@@ -20,7 +20,7 @@ for_each?
     }
 }
 
-void TimeWheel::addTimer(Timer* timer)
+void TimeWheel::addTimer(Timer *timer)
 {
     struct timeval tv;
     gettimeofday(&tv, nullptr);
@@ -41,7 +41,7 @@ void TimeWheel::addTimer(Timer* timer)
     slots[timer->ts].push_back(timer);
 }
 
-void TimeWheel::delTimer(Timer* timer)
+void TimeWheel::delTimer(Timer *timer)
 {
     if (!timer)
     {
@@ -54,15 +54,15 @@ void TimeWheel::delTimer(Timer* timer)
     {
         if (*it == timer)
         {
+            slots[ts].erase(it); //删除
             delete *it;
             *it = nullptr;
-            slots[ts].erase(it); //删除
             break;
         }
     }
 }
 
-void TimeWheel::getTime(time_t& time)
+void TimeWheel::getTime(time_t &time)
 {
     struct timeval tv;
     gettimeofday(&tv, nullptr);
@@ -85,6 +85,10 @@ void TimeWheel::adjust(int fd)
                 // slots[i].erase(it);
                 flag = true;
                 tag = i;
+
+                getTime((*it)->clock); //更新该定时器时间
+                addTimer((*it));       //重新添加该定时器
+                slots[tag].erase(it);
                 break;
             }
         }
@@ -93,12 +97,14 @@ void TimeWheel::adjust(int fd)
             break;
         }
     }
+    /*
     if (flag)
     {
         getTime((*it)->clock); //更新该定时器时间
         addTimer((*it));       //重新添加该定时器
         slots[tag].erase(it);
     }
+    */
 }
 
 void TimeWheel::tick()

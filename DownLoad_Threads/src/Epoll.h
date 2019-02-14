@@ -35,6 +35,7 @@ public:
     void shutDownFd(int fd);
     void addToTimeWheel(int fd);
     void setTimer();
+    int recvFrom(int fd, void* ptr, int n);
 }; 
 
 #endif

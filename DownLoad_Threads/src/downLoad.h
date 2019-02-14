@@ -21,6 +21,7 @@ mutex资源尝试使用RAII吧
     bool running;
     std::map<std::string, char*> record;    //记录文件名对应的保存断点的数组
     std::vector<std::thread> mergeThreads;    //多线程合并文件
+    bool isStop;
 public:
     downLoad(int fd);
     void recvFile();
@@ -31,6 +32,7 @@ public:
     void applyBreCon(RequestMsg& job, std::string flag); //查看有无断点 
     void saveRecord();  
     void turnTo(std::string a, std::string b, std::string c);
+    int recvFrom(int fd, void* ptr, int n);
 };
 
 #endif

@@ -27,6 +27,7 @@ public:
     void incThreads();
     void sendFromBreak(DownloadMsg job);       //断点续传发送文件
     void sendNoBreak(DownloadMsg job);    //不是断点续传
+    int my_pread(int fd, int location, DownloadMsg& job);
 };
 
 #endif
